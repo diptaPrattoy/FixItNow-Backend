@@ -9,7 +9,7 @@ dist/
 .env.*
 !.env.example
 
-# Prisma generated client
+# Prisma-generated client
 generated/
 
 # Test coverage
