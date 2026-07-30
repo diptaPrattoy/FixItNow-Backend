@@ -27,6 +27,9 @@ import {
 
 import { paymentRouter } from "./modules/payment/payment.route.js";
 
+import { adminRouter } from "./modules/admin/admin.route.js";
+import { reviewRouter } from "./modules/review/review.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -90,6 +93,9 @@ app.use("/api", publicRouter);
 app.use("/api/bookings", customerBookingRouter);
 
 app.use("/api/payments", paymentRouter);
+
+app.use("/api/reviews", reviewRouter);
+app.use("/api/admin", adminRouter);
 
 app.use("/api/technician/bookings", technicianBookingRouter);
 
