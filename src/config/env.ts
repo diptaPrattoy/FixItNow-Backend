@@ -13,6 +13,10 @@ const postgresUrlSchema = z
     },
   );
 
+const booleanString = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -31,11 +35,20 @@ const envSchema = z.object({
     .string()
     .min(10, "JWT_SECRET must contain at least 10 characters"),
 
-  JWT_EXPIRES_IN: z.coerce
-    .number()
-    .int("JWT_EXPIRES_IN must be an integer")
-    .positive("JWT_EXPIRES_IN must be greater than zero")
-    .default(604800),
+  JWT_EXPIRES_IN: z.coerce.number().int().positive().default(604800),
+
+  APP_BASE_URL: z
+    .string()
+    .url("APP_BASE_URL must be a valid URL")
+    .transform((value) => value.replace(/\/+$/, "")),
+
+  SSLCOMMERZ_STORE_ID: z.string().min(1, "SSLCOMMERZ_STORE_ID is required"),
+
+  SSLCOMMERZ_STORE_PASSWORD: z
+    .string()
+    .min(1, "SSLCOMMERZ_STORE_PASSWORD is required"),
+
+  SSLCOMMERZ_IS_LIVE: booleanString.default(false),
 });
 
 const result = envSchema.safeParse(process.env);

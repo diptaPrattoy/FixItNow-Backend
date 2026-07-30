@@ -111,11 +111,7 @@ const bookingDetailsSelect = {
   },
 } satisfies Prisma.BookingSelect;
 
-const getPagination = (
-  page: number,
-  limit: number,
-  total: number,
-) => ({
+const getPagination = (page: number, limit: number, total: number) => ({
   page,
   limit,
   total,
@@ -181,8 +177,7 @@ export const createCustomerBooking = async (
     );
   }
 
-  const slotDuration =
-    slot.endTime.getTime() - slot.startTime.getTime();
+  const slotDuration = slot.endTime.getTime() - slot.startTime.getTime();
 
   const serviceDuration = service.durationMinutes * 60 * 1000;
 
@@ -197,20 +192,19 @@ export const createCustomerBooking = async (
   }
 
   return prisma.$transaction(async (transaction) => {
-    const reservedSlot =
-      await transaction.availabilitySlot.updateMany({
-        where: {
-          id: slot.id,
-          technicianId: service.technicianId,
-          status: AvailabilityStatus.AVAILABLE,
-          startTime: {
-            gt: new Date(),
-          },
+    const reservedSlot = await transaction.availabilitySlot.updateMany({
+      where: {
+        id: slot.id,
+        technicianId: service.technicianId,
+        status: AvailabilityStatus.AVAILABLE,
+        startTime: {
+          gt: new Date(),
         },
-        data: {
-          status: AvailabilityStatus.BOOKED,
-        },
-      });
+      },
+      data: {
+        status: AvailabilityStatus.BOOKED,
+      },
+    });
 
     if (reservedSlot.count !== 1) {
       throw new AppError(
@@ -269,11 +263,7 @@ export const getCustomerBookings = async (
 
   return {
     bookings,
-    pagination: getPagination(
-      query.page,
-      query.limit,
-      total,
-    ),
+    pagination: getPagination(query.page, query.limit, total),
   };
 };
 
@@ -324,18 +314,23 @@ export const cancelCustomerBooking = async (
   const cancellableStatuses: BookingStatus[] = [
     BookingStatus.REQUESTED,
     BookingStatus.ACCEPTED,
-    BookingStatus.PAID,
   ];
 
-  if (!cancellableStatuses.includes(booking.status)) {
+  if (booking.status === BookingStatus.PAID) {
     throw new AppError(
       409,
-      `A ${booking.status} booking cannot be cancelled`,
+      "A paid booking requires a verified refund before cancellation",
       {
-        code: "BOOKING_CANNOT_BE_CANCELLED",
-        currentStatus: booking.status,
+        code: "PAID_BOOKING_REQUIRES_REFUND",
       },
     );
+  }
+
+  if (!cancellableStatuses.includes(booking.status)) {
+    throw new AppError(409, `A ${booking.status} booking cannot be cancelled`, {
+      code: "BOOKING_CANNOT_BE_CANCELLED",
+      currentStatus: booking.status,
+    });
   }
 
   return prisma.$transaction(async (transaction) => {
@@ -405,11 +400,7 @@ export const getTechnicianBookings = async (
 
   return {
     bookings,
-    pagination: getPagination(
-      query.page,
-      query.limit,
-      total,
-    ),
+    pagination: getPagination(query.page, query.limit, total),
   };
 };
 
@@ -440,21 +431,12 @@ const validateBookingTransition = (
   currentStatus: BookingStatus,
   nextStatus: BookingStatus,
 ) => {
-  const transitions: Partial<
-    Record<BookingStatus, BookingStatus[]>
-  > = {
-    [BookingStatus.REQUESTED]: [
-      BookingStatus.ACCEPTED,
-      BookingStatus.DECLINED,
-    ],
+  const transitions: Partial<Record<BookingStatus, BookingStatus[]>> = {
+    [BookingStatus.REQUESTED]: [BookingStatus.ACCEPTED, BookingStatus.DECLINED],
 
-    [BookingStatus.PAID]: [
-      BookingStatus.IN_PROGRESS,
-    ],
+    [BookingStatus.PAID]: [BookingStatus.IN_PROGRESS],
 
-    [BookingStatus.IN_PROGRESS]: [
-      BookingStatus.COMPLETED,
-    ],
+    [BookingStatus.IN_PROGRESS]: [BookingStatus.COMPLETED],
   };
 
   if (!transitions[currentStatus]?.includes(nextStatus)) {

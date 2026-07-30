@@ -25,6 +25,8 @@ import {
   technicianBookingRouter,
 } from "./modules/booking/booking.route.js";
 
+import { paymentRouter } from "./modules/payment/payment.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -86,6 +88,8 @@ app.use("/api/auth", authRouter);
 app.use("/api", publicRouter);
 
 app.use("/api/bookings", customerBookingRouter);
+
+app.use("/api/payments", paymentRouter);
 
 app.use("/api/technician/bookings", technicianBookingRouter);
 
