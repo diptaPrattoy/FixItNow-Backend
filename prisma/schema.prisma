@@ -6,3 +6,215 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  CUSTOMER
+  TECHNICIAN
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  PAID
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PaymentProvider {
+  SSLCOMMERZ
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String     @db.VarChar(100)
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @db.VarChar(255)
+  phone        String?    @db.VarChar(20)
+  avatarUrl    String?    @db.Text
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  technicianProfile TechnicianProfile?
+  customerBookings  Booking[]          @relation("CustomerBookings")
+  payments          Payment[]
+  reviews           Review[]           @relation("CustomerReviews")
+
+  @@index([role, status])
+  @@index([createdAt])
+}
+
+model TechnicianProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  bio             String?  @db.Text
+  experienceYears Int      @default(0)
+  location        String   @db.VarChar(150)
+  averageRating   Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount     Int      @default(0)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services          Service[]
+  availabilitySlots AvailabilitySlot[]
+  bookings          Booking[]          @relation("TechnicianBookings")
+  reviews           Review[]           @relation("TechnicianReviews")
+
+  @@index([location])
+  @@index([averageRating])
+  @@index([isVerified])
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(120)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  services Service[]
+
+  @@index([isActive])
+}
+
+model Service {
+  id              String   @id @default(uuid()) @db.Uuid
+  technicianId    String   @db.Uuid
+  categoryId      String   @db.Uuid
+  name            String   @db.VarChar(150)
+  description     String?  @db.Text
+  price           Decimal  @db.Decimal(10, 2)
+  durationMinutes Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  technician TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  category   Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  bookings   Booking[]
+
+  @@unique([technicianId, name])
+  @@index([categoryId, isActive, price])
+  @@index([technicianId, isActive])
+}
+
+model AvailabilitySlot {
+  id           String             @id @default(uuid()) @db.Uuid
+  technicianId String             @db.Uuid
+  startTime    DateTime           @db.Timestamptz(3)
+  endTime      DateTime           @db.Timestamptz(3)
+  status       AvailabilityStatus @default(AVAILABLE)
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(3)
+
+  technician TechnicianProfile @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  bookings   Booking[]
+
+  @@unique([technicianId, startTime, endTime])
+  @@index([technicianId, status])
+  @@index([startTime, endTime])
+}
+
+model Booking {
+  id                 String        @id @default(uuid()) @db.Uuid
+  customerId         String        @db.Uuid
+  technicianId       String        @db.Uuid
+  serviceId          String        @db.Uuid
+  availabilitySlotId String        @db.Uuid
+  address            String        @db.VarChar(255)
+  notes              String?       @db.Text
+  amount             Decimal       @db.Decimal(10, 2)
+  status             BookingStatus @default(REQUESTED)
+  declineReason      String?       @db.Text
+  cancellationReason String?       @db.Text
+  acceptedAt         DateTime?     @db.Timestamptz(3)
+  startedAt          DateTime?     @db.Timestamptz(3)
+  completedAt        DateTime?     @db.Timestamptz(3)
+  cancelledAt        DateTime?     @db.Timestamptz(3)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+
+  customer         User              @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Restrict)
+  technician       TechnicianProfile @relation("TechnicianBookings", fields: [technicianId], references: [id], onDelete: Restrict)
+  service          Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  availabilitySlot AvailabilitySlot  @relation(fields: [availabilitySlotId], references: [id], onDelete: Restrict)
+  payments         Payment[]
+  review           Review?
+
+  @@index([customerId, status])
+  @@index([technicianId, status])
+  @@index([serviceId])
+  @@index([availabilitySlotId])
+  @@index([status, createdAt])
+}
+
+model Payment {
+  id                String          @id @default(uuid()) @db.Uuid
+  bookingId         String          @db.Uuid
+  customerId        String          @db.Uuid
+  transactionId     String          @unique @db.VarChar(255)
+  sessionKey        String?         @unique @db.VarChar(255)
+  bankTransactionId String?         @db.VarChar(255)
+  validationId      String?         @db.VarChar(255)
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("BDT") @db.VarChar(3)
+  provider          PaymentProvider @default(SSLCOMMERZ)
+  method            String?         @db.VarChar(100)
+  status            PaymentStatus   @default(PENDING)
+  gatewayResponse   Json?
+  paidAt            DateTime?       @db.Timestamptz(3)
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime        @updatedAt @db.Timestamptz(3)
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  customer User    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId, status])
+  @@index([customerId, status])
+  @@index([createdAt])
+}
+
+model Review {
+  id           String   @id @default(uuid()) @db.Uuid
+  bookingId    String   @unique @db.Uuid
+  customerId   String   @db.Uuid
+  technicianId String   @db.Uuid
+  rating       Int
+  comment      String?  @db.Text
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  booking    Booking           @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  customer   User              @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Restrict)
+  technician TechnicianProfile @relation("TechnicianReviews", fields: [technicianId], references: [id], onDelete: Restrict)
+
+  @@index([technicianId, rating])
+  @@index([customerId])
+}
