@@ -18,6 +18,8 @@ import { authRouter } from "./modules/auth/auth.route.js";
 
 import { publicRouter } from "./modules/public/public.route.js";
 
+import { technicianRouter } from "./modules/technician/technician.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -68,19 +70,16 @@ app.get(
         },
       });
     } catch {
-      throw new AppError(
-        503,
-        "Database connection is unavailable",
-        {
-          code: "DATABASE_UNAVAILABLE",
-        },
-      );
+      throw new AppError(503, "Database connection is unavailable", {
+        code: "DATABASE_UNAVAILABLE",
+      });
     }
   }),
 );
 
 app.use("/api/auth", authRouter);
 app.use("/api", publicRouter);
+app.use("/api/technician", technicianRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
