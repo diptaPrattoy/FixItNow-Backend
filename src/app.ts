@@ -16,6 +16,8 @@ import { catchAsync } from "./utils/catch-async.js";
 
 import { authRouter } from "./modules/auth/auth.route.js";
 
+import { publicRouter } from "./modules/public/public.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -78,6 +80,7 @@ app.get(
 );
 
 app.use("/api/auth", authRouter);
+app.use("/api", publicRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

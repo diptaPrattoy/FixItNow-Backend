@@ -13,6 +13,11 @@ declare global {
         role: UserRole;
         status: UserStatus;
       };
+      validated?: {
+        body?: unknown;
+        params?: unknown;
+        query?: unknown;
+      };
     }
   }
 }

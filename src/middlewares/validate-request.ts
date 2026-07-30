@@ -14,22 +14,19 @@ export const validateRequest = (schema: ZodType): RequestHandler => {
 
     if (!result.success) {
       next(
-        new AppError(
-          400,
-          "Validation failed",
-          formatZodError(result.error),
-        ),
+        new AppError(400, "Validation failed", formatZodError(result.error)),
       );
-
       return;
     }
 
-    const data = result.data as {
+    req.validated = result.data as {
       body?: unknown;
+      params?: unknown;
+      query?: unknown;
     };
 
-    if (data.body !== undefined) {
-      req.body = data.body;
+    if (req.validated.body !== undefined) {
+      req.body = req.validated.body;
     }
 
     next();
