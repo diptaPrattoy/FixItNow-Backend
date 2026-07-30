@@ -8,37 +8,20 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { env } from "./config/env.js";
+import { AppError } from "./errors/app-error.js";
+import { errorHandler } from "./middlewares/error-handler.js";
+import { notFoundHandler } from "./middlewares/not-found.js";
 import { prisma } from "./lib/prisma.js";
+import { catchAsync } from "./utils/catch-async.js";
 
 const app: Application = express();
 
-/**
- * Security headers
- */
 app.use(helmet());
-
-/**
- * CORS
- *
- * A specific frontend origin can be configured later if a frontend
- * is added. Postman is not restricted by browser CORS rules.
- */
 app.use(cors());
-
-/**
- * Request-body parsers
- */
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
-
-/**
- * HTTP request logger
- */
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
-/**
- * Root route
- */
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -51,9 +34,6 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-/**
- * Application health route
- */
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -67,15 +47,9 @@ app.get("/api/health", (_req: Request, res: Response) => {
   });
 });
 
-/**
- * Database health route
- *
- * This sends a lightweight query to PostgreSQL to confirm that
- * Prisma can communicate with the Neon database.
- */
 app.get(
   "/api/health/database",
-  async (_req: Request, res: Response) => {
+  catchAsync(async (_req: Request, res: Response) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
 
@@ -89,18 +63,19 @@ app.get(
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (error) {
-      console.error("Database health check failed:", error);
-
-      res.status(503).json({
-        success: false,
-        message: "Database connection is unavailable",
-        errorDetails: {
+    } catch {
+      throw new AppError(
+        503,
+        "Database connection is unavailable",
+        {
           code: "DATABASE_UNAVAILABLE",
         },
-      });
+      );
     }
-  },
+  }),
 );
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
