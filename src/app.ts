@@ -14,6 +14,8 @@ import { notFoundHandler } from "./middlewares/not-found.js";
 import { prisma } from "./lib/prisma.js";
 import { catchAsync } from "./utils/catch-async.js";
 
+import { authRouter } from "./modules/auth/auth.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -74,6 +76,8 @@ app.get(
     }
   }),
 );
+
+app.use("/api/auth", authRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

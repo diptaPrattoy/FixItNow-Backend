@@ -24,6 +24,14 @@ export const validateRequest = (schema: ZodType): RequestHandler => {
       return;
     }
 
+    const data = result.data as {
+      body?: unknown;
+    };
+
+    if (data.body !== undefined) {
+      req.body = data.body;
+    }
+
     next();
   };
 };
