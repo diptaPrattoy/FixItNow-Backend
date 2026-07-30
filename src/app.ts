@@ -20,6 +20,11 @@ import { publicRouter } from "./modules/public/public.route.js";
 
 import { technicianRouter } from "./modules/technician/technician.route.js";
 
+import {
+  customerBookingRouter,
+  technicianBookingRouter,
+} from "./modules/booking/booking.route.js";
+
 const app: Application = express();
 
 app.use(helmet());
@@ -79,6 +84,11 @@ app.get(
 
 app.use("/api/auth", authRouter);
 app.use("/api", publicRouter);
+
+app.use("/api/bookings", customerBookingRouter);
+
+app.use("/api/technician/bookings", technicianBookingRouter);
+
 app.use("/api/technician", technicianRouter);
 
 app.use(notFoundHandler);
