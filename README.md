@@ -297,11 +297,9 @@ ADD_PUBLISHED_POSTMAN_DOCUMENTATION_URL
 ## Administrator Credentials
 
 ```text
-Email: admin@fixitnow.com
-Password: Provided privately in the assignment submission
+Email: 
+Password: 
 ```
-
-The administrator password is intentionally excluded from the public repository. It should be submitted privately through the assignment submission form or included in the private evaluator instructions.
 
 ## Deployment
 
