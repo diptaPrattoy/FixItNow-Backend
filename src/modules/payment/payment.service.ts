@@ -15,7 +15,6 @@ import {
   validateSslCommerzPayment,
   type SslCommerzResponse,
 } from "./sslcommerz.client.js";
-
 const paymentSelect = {
   id: true,
   transactionId: true,

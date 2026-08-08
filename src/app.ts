@@ -20,6 +20,8 @@ import { publicRouter } from "./modules/public/public.route.js";
 
 import { technicianRouter } from "./modules/technician/technician.route.js";
 
+import { contactRouter } from "./modules/contact/contact.route.js";
+
 import {
   customerBookingRouter,
   technicianBookingRouter,
@@ -89,6 +91,8 @@ app.get(
 
 app.use("/api/auth", authRouter);
 app.use("/api", publicRouter);
+
+app.use("/api/contact", contactRouter);
 
 app.use("/api/bookings", customerBookingRouter);
 

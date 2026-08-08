@@ -8,7 +8,9 @@ import {
   createCategory,
   listBookings,
   listCategories,
+  listContactMessages,
   listUsers,
+  readContactMessage,
   updateCategory,
   updateUserStatus,
 } from "./admin.controller.js";
@@ -22,16 +24,9 @@ import {
 
 export const adminRouter = Router();
 
-adminRouter.use(
-  authenticate,
-  authorizeRoles(UserRole.ADMIN),
-);
+adminRouter.use(authenticate, authorizeRoles(UserRole.ADMIN));
 
-adminRouter.get(
-  "/users",
-  validateRequest(listAdminUsersSchema),
-  listUsers,
-);
+adminRouter.get("/users", validateRequest(listAdminUsersSchema), listUsers);
 
 adminRouter.patch(
   "/users/:id",
@@ -58,3 +53,7 @@ adminRouter.patch(
   validateRequest(updateCategorySchema),
   updateCategory,
 );
+
+adminRouter.get("/contact-messages", listContactMessages);
+
+adminRouter.patch("/contact-messages/:id/read", readContactMessage);

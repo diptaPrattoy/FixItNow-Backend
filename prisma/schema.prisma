@@ -218,3 +218,24 @@ model Review {
   @@index([technicianId, rating])
   @@index([customerId])
 }
+
+enum ContactMessageStatus {
+  UNREAD
+  READ
+}
+
+model ContactMessage {
+  id      String               @id @default(uuid())
+  name    String
+  email   String
+  phone   String?
+  subject String
+  message String
+  status  ContactMessageStatus @default(UNREAD)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}

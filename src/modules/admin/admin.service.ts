@@ -1,8 +1,4 @@
-import {
-  Prisma,
-  UserRole,
-  UserStatus,
-} from "../../generated/prisma/client.js";
+import { Prisma, UserRole, UserStatus } from "../../generated/prisma/client.js";
 import { AppError } from "../../errors/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import type {
@@ -13,11 +9,7 @@ import type {
   UpdateUserStatusInput,
 } from "./admin.schema.js";
 
-const getPagination = (
-  page: number,
-  limit: number,
-  total: number,
-) => ({
+const getPagination = (page: number, limit: number, total: number) => ({
   page,
   limit,
   total,
@@ -141,9 +133,7 @@ const adminBookingSelect = {
   },
 } satisfies Prisma.BookingSelect;
 
-export const getAdminUsers = async (
-  query: AdminUserListQuery,
-) => {
+export const getAdminUsers = async (query: AdminUserListQuery) => {
   const where: Prisma.UserWhereInput = {
     ...(query.role && {
       role: query.role,
@@ -204,11 +194,7 @@ export const getAdminUsers = async (
 
   return {
     users,
-    pagination: getPagination(
-      query.page,
-      query.limit,
-      total,
-    ),
+    pagination: getPagination(query.page, query.limit, total),
   };
 };
 
@@ -245,13 +231,9 @@ export const updateAdminUserStatus = async (
   }
 
   if (user.role === UserRole.ADMIN) {
-    throw new AppError(
-      403,
-      "Another administrator account cannot be banned",
-      {
-        code: "ADMIN_STATUS_CHANGE_FORBIDDEN",
-      },
-    );
+    throw new AppError(403, "Another administrator account cannot be banned", {
+      code: "ADMIN_STATUS_CHANGE_FORBIDDEN",
+    });
   }
 
   return prisma.user.update({
@@ -265,9 +247,7 @@ export const updateAdminUserStatus = async (
   });
 };
 
-export const getAdminBookings = async (
-  query: AdminBookingListQuery,
-) => {
+export const getAdminBookings = async (query: AdminBookingListQuery) => {
   const where: Prisma.BookingWhereInput = {
     ...(query.status && {
       status: query.status,
@@ -339,11 +319,7 @@ export const getAdminBookings = async (
 
   return {
     bookings,
-    pagination: getPagination(
-      query.page,
-      query.limit,
-      total,
-    ),
+    pagination: getPagination(query.page, query.limit, total),
   };
 };
 
@@ -369,9 +345,7 @@ export const getAdminCategories = async () => {
   });
 };
 
-export const createAdminCategory = async (
-  input: CreateCategoryInput,
-) => {
+export const createAdminCategory = async (input: CreateCategoryInput) => {
   const slug = createSlug(input.name);
 
   if (!slug) {
@@ -483,6 +457,37 @@ export const updateAdminCategory = async (
       slug,
       description: input.description,
       isActive: input.isActive,
+    },
+  });
+};
+
+export const getAdminContactMessages = async () => {
+  return prisma.contactMessage.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+export const markContactMessageAsRead = async (messageId: string) => {
+  const message = await prisma.contactMessage.findUnique({
+    where: {
+      id: messageId,
+    },
+  });
+
+  if (!message) {
+    throw new AppError(404, "Contact message was not found", {
+      code: "CONTACT_MESSAGE_NOT_FOUND",
+    });
+  }
+
+  return prisma.contactMessage.update({
+    where: {
+      id: messageId,
+    },
+    data: {
+      status: "READ",
     },
   });
 };
