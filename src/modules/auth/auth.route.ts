@@ -10,38 +10,20 @@ import {
   register,
   updateProfile,
   updateAvatar,
+  googleLogin,
 } from "./auth.controller.js";
 
-import {
-  loginSchema,
-  registerSchema,
-} from "./auth.schema.js";
+import { loginSchema, registerSchema } from "./auth.schema.js";
 
 export const authRouter = Router();
 
-authRouter.post(
-  "/register",
-  validateRequest(registerSchema),
-  register,
-);
+authRouter.post("/register", validateRequest(registerSchema), register);
 
-authRouter.post(
-  "/login",
-  validateRequest(loginSchema),
-  login,
-);
+authRouter.post("/login", validateRequest(loginSchema), login);
 
-authRouter.get(
-  "/me",
-  authenticate,
-  me,
-);
+authRouter.get("/me", authenticate, me);
 
-authRouter.patch(
-  "/profile",
-  authenticate,
-  updateProfile,
-);
+authRouter.patch("/profile", authenticate, updateProfile);
 
 authRouter.patch(
   "/profile/avatar",
@@ -49,3 +31,4 @@ authRouter.patch(
   uploadAvatar.single("avatar"),
   updateAvatar,
 );
+authRouter.post("/google", googleLogin);

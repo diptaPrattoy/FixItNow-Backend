@@ -49,6 +49,7 @@ const envSchema = z.object({
     .min(1, "SSLCOMMERZ_STORE_PASSWORD is required"),
 
   SSLCOMMERZ_IS_LIVE: booleanString.default(false),
+  GOOGLE_CLIENT_ID: z.string().min(1),
 });
 
 const result = envSchema.safeParse(process.env);

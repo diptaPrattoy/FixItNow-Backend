@@ -7,7 +7,144 @@ import { prisma } from "../../lib/prisma.js";
 import { signAccessToken } from "../../utils/jwt.js";
 import type { LoginInput, RegisterInput } from "./auth.schema.js";
 import cloudinary from "../../lib/cloudinary.js";
+import { OAuth2Client } from "google-auth-library";
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const loginWithGoogle = async (credential: string) => {
+  if (!credential) {
+    throw new AppError(400, "Google credential is required", {
+      code: "GOOGLE_CREDENTIAL_REQUIRED",
+    });
+  }
+
+  let ticket;
+
+  try {
+    ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+  } catch {
+    throw new AppError(401, "Invalid Google credential", {
+      code: "INVALID_GOOGLE_CREDENTIAL",
+    });
+  }
+
+  const payload = ticket.getPayload();
+
+  if (!payload) {
+    throw new AppError(401, "Invalid Google account information", {
+      code: "INVALID_GOOGLE_ACCOUNT",
+    });
+  }
+
+  const googleId = payload.sub;
+  const email = payload.email;
+  const googleName = payload.name;
+  const picture = payload.picture;
+
+  if (!googleId || !email) {
+    throw new AppError(401, "Google account information is incomplete", {
+      code: "GOOGLE_ACCOUNT_INCOMPLETE",
+    });
+  }
+
+  if (payload.email_verified !== true) {
+    throw new AppError(401, "Google email address is not verified", {
+      code: "GOOGLE_EMAIL_NOT_VERIFIED",
+    });
+  }
+
+  // --------------------------------------------------
+  // 1. Find existing user by Google ID
+  // --------------------------------------------------
+
+  let user = await prisma.user.findUnique({
+    where: {
+      googleId,
+    },
+    select: publicUserSelect,
+  });
+
+  // --------------------------------------------------
+  // 2. Google ID doesn't exist
+  // --------------------------------------------------
+
+  if (!user) {
+    // Check whether an account with this email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+        googleId: true,
+      },
+    });
+
+    if (existingUser) {
+      // Connect Google account to existing account
+      user = await prisma.user.update({
+        where: {
+          id: existingUser.id,
+        },
+        data: {
+          googleId,
+          ...(picture ? { avatarUrl: picture } : {}),
+        },
+        select: publicUserSelect,
+      });
+    } else {
+      // Create a new CUSTOMER account
+      const newUser = await prisma.user.create({
+        data: {
+          name: googleName?.trim() || email.split("@")[0] || "Google User",
+
+          email,
+          googleId,
+          passwordHash: null,
+          avatarUrl: picture ?? null,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.ACTIVE,
+        },
+        select: publicUserSelect,
+      });
+
+      user = newUser;
+    }
+  }
+
+  // --------------------------------------------------
+  // 3. Make sure TypeScript knows user exists
+  // --------------------------------------------------
+
+  if (!user) {
+    throw new AppError(500, "Unable to create or retrieve user", {
+      code: "GOOGLE_USER_RESOLUTION_FAILED",
+    });
+  }
+
+  // --------------------------------------------------
+  // 4. Check account status
+  // --------------------------------------------------
+
+  if (user.status === UserStatus.BANNED) {
+    throw new AppError(403, "Your account has been banned", {
+      code: "ACCOUNT_BANNED",
+    });
+  }
+
+  // --------------------------------------------------
+  // 5. Generate JWT
+  // --------------------------------------------------
+
+  return {
+    user,
+    accessToken: signAccessToken(user.id, user.role),
+    expiresIn: env.JWT_EXPIRES_IN,
+  };
+};
 const publicUserSelect = {
   id: true,
   name: true,
