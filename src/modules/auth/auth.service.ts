@@ -229,7 +229,11 @@ export const loginUser = async (input: LoginInput) => {
       code: "INVALID_CREDENTIALS",
     });
   }
-
+  if (!user.passwordHash) {
+    throw new AppError(401, "Email or password is incorrect", {
+      code: "INVALID_CREDENTIALS",
+    });
+  }
   const passwordMatches = await bcrypt.compare(
     input.password,
     user.passwordHash,
