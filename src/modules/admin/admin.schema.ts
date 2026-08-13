@@ -159,3 +159,40 @@ export type CreateCategoryInput = z.infer<typeof createCategoryBodySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategoryBodySchema>;
 
 export type AdminIdParams = z.infer<typeof idParamsSchema>;
+
+
+
+
+/* =========================
+   ADMIN MANAGEMENT
+========================= */
+const adminListQuerySchema = z.object({
+  ...pagination,
+
+  search: z
+    .string()
+    .trim()
+    .max(150)
+    .optional(),
+
+  status: z
+    .enum(["ACTIVE", "BANNED"])
+    .optional(),
+});
+
+/* =========================
+   CATEGORY
+========================= */
+
+
+
+
+
+/* ADMIN MANAGEMENT */
+
+export const listAdminsSchema = z.object({
+  query: adminListQuerySchema,
+});
+export type AdminListQuery = z.infer<
+  typeof adminListQuerySchema
+>;

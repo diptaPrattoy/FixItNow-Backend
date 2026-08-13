@@ -9,6 +9,7 @@ import type {
   UpdateCategoryInput,
   UpdateUserStatusInput,
   CreateAdminInput,
+  AdminListQuery,
 } from "./admin.schema.js";
 import {
   createAdminCategory,
@@ -19,7 +20,8 @@ import {
   markContactMessageAsRead,
   updateAdminCategory,
   updateAdminUserStatus,
-  createAdminUser,
+  createAdminAccount,
+  getAdminAccounts,
 } from "./admin.service.js";
 
 export const listUsers = catchAsync(async (req: Request, res: Response) => {
@@ -117,7 +119,7 @@ export const listContactMessages = catchAsync(
 
 export const readContactMessage = catchAsync(
   async (req: Request, res: Response) => {
-    const message = await markContactMessageAsRead( req.params.id as string);
+    const message = await markContactMessageAsRead(req.params.id as string);
 
     res.status(200).json({
       success: true,
@@ -127,17 +129,41 @@ export const readContactMessage = catchAsync(
   },
 );
 
-export const createAdmin = catchAsync(
-  async (req: Request, res: Response) => {
-    const input = req.body as CreateAdminInput;
+// export const createAdmin = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const input = req.body as CreateAdminInput;
 
-    const admin = await createAdminUser(input);
+//     const admin = await createAdminUser(input);
 
-    res.status(201).json({
-      success: true,
-      message: "Administrator created successfully",
-      data: admin,
-    });
-  },
-);
+//     res.status(201).json({
+//       success: true,
+//       message: "Administrator created successfully",
+//       data: admin,
+//     });
+//   },
+// );
 
+export const listAdmins = catchAsync(async (req: Request, res: Response) => {
+  const query = req.validated?.query as AdminListQuery;
+
+  const result = await getAdminAccounts(query);
+
+  res.status(200).json({
+    success: true,
+    message: "Administrators retrieved successfully",
+    data: result.admins,
+    meta: result.pagination,
+  });
+});
+
+export const createAdmin = catchAsync(async (req: Request, res: Response) => {
+  const input = req.body as CreateAdminInput;
+
+  const admin = await createAdminAccount(input);
+
+  res.status(201).json({
+    success: true,
+    message: "Administrator created successfully",
+    data: admin,
+  });
+});

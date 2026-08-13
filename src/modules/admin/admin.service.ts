@@ -4,12 +4,12 @@ import { prisma } from "../../lib/prisma.js";
 import bcrypt from "bcryptjs";
 import type {
   AdminBookingListQuery,
+  AdminListQuery,
   AdminUserListQuery,
   CreateCategoryInput,
   CreateAdminInput,
   UpdateCategoryInput,
   UpdateUserStatusInput,
-  
 } from "./admin.schema.js";
 
 const getPagination = (page: number, limit: number, total: number) => ({
@@ -495,7 +495,51 @@ export const markContactMessageAsRead = async (messageId: string) => {
   });
 };
 
-export const createAdminUser = async (input: CreateAdminInput) => {
+// export const createAdminUser = async (input: CreateAdminInput) => {
+//   const existingUser = await prisma.user.findUnique({
+//     where: {
+//       email: input.email,
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+
+//   if (existingUser) {
+//     throw new AppError(409, "An account with this email already exists", {
+//       code: "EMAIL_ALREADY_EXISTS",
+//       field: "email",
+//     });
+//   }
+
+//   const passwordHash = await bcrypt.hash(input.password, 12);
+
+//   const admin = await prisma.user.create({
+//     data: {
+//       name: input.name,
+//       email: input.email,
+//       phone: input.phone ?? null,
+//       passwordHash,
+//       role: UserRole.ADMIN,
+//       status: UserStatus.ACTIVE,
+//     },
+//     select: {
+//       id: true,
+//       name: true,
+//       email: true,
+//       phone: true,
+//       avatarUrl: true,
+//       role: true,
+//       status: true,
+//       createdAt: true,
+//       updatedAt: true,
+//     },
+//   });
+
+//   return admin;
+// };
+
+export const createAdminAccount = async (input: CreateAdminInput) => {
   const existingUser = await prisma.user.findUnique({
     where: {
       email: input.email,
@@ -537,4 +581,70 @@ export const createAdminUser = async (input: CreateAdminInput) => {
   });
 
   return admin;
+};
+
+export const getAdminAccounts = async (query: AdminListQuery) => {
+  const where: Prisma.UserWhereInput = {
+    role: UserRole.ADMIN,
+
+    ...(query.status && {
+      status: query.status,
+    }),
+  };
+
+  if (query.search) {
+    where.OR = [
+      {
+        name: {
+          contains: query.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        email: {
+          contains: query.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        phone: {
+          contains: query.search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  const skip = (query.page - 1) * query.limit;
+
+  const [admins, total] = await prisma.$transaction([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: query.limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatarUrl: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+
+    prisma.user.count({
+      where,
+    }),
+  ]);
+
+  return {
+    admins,
+    pagination: getPagination(query.page, query.limit, total),
+  };
 };
