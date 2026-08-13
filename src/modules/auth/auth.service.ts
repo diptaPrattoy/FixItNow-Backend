@@ -6,6 +6,7 @@ import { UserRole, UserStatus } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { signAccessToken } from "../../utils/jwt.js";
 import type { LoginInput, RegisterInput } from "./auth.schema.js";
+import cloudinary from "../../lib/cloudinary.js";
 
 const publicUserSelect = {
   id: true,
@@ -208,23 +209,47 @@ export const updateCurrentUser = async (
 export const updateUserAvatar = async (
   userId: string,
   file: Express.Multer.File,
-) => {
-  // Upload `file.buffer` to Cloudinary/Supabase Storage here.
-  //
-  // After getting the public URL:
-  //
-  // const avatarUrl = "https://...";
+): Promise<string> => {
+  try {
+    const avatarUrl = await new Promise<string>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "fixitnow/avatars",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
 
-  const avatarUrl = "...YOUR_STORAGE_URL...";
+          if (!result?.secure_url) {
+            reject(new Error("Cloudinary did not return an image URL"));
+            return;
+          }
 
-  await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      avatarUrl,
-    },
-  });
+          resolve(result.secure_url);
+        },
+      );
 
-  return avatarUrl;
+      uploadStream.end(file.buffer);
+    });
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        avatarUrl,
+      },
+    });
+
+    return avatarUrl;
+  } catch (error) {
+    console.error("Avatar upload failed:", error);
+
+    throw new AppError(500, "Failed to upload profile picture", {
+      code: "AVATAR_UPLOAD_FAILED",
+    });
+  }
 };

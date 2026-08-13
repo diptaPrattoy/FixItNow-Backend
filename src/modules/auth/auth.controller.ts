@@ -61,24 +61,31 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const updateAvatar = catchAsync(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, "Authentication is required", {
-      code: "AUTHENTICATION_REQUIRED",
+export const updateAvatar = catchAsync(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError(401, "Authentication is required", {
+        code: "AUTHENTICATION_REQUIRED",
+      });
+    }
+
+    if (!req.file) {
+      throw new AppError(400, "Profile image is required", {
+        code: "AVATAR_REQUIRED",
+      });
+    }
+
+    const avatarUrl = await updateUserAvatar(
+      req.user.id,
+      req.file,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: {
+        avatarUrl,
+      },
     });
-  }
-
-  if (!req.file) {
-    throw new AppError(400, "Profile image is required", {
-      code: "AVATAR_REQUIRED",
-    });
-  }
-
-  const avatarUrl = await updateUserAvatar(req.user.id, req.file);
-
-  res.status(200).json({
-    success: true,
-    message: "Profile picture updated successfully",
-    data: await getCurrentUser(req.user.id),
-  });
-});
+  },
+);
