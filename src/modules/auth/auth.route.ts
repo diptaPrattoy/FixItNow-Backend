@@ -1,12 +1,17 @@
 import { Router } from "express";
 
 import { authenticate } from "../../middlewares/authenticate.js";
+import { uploadAvatar } from "../../middlewares/upload-avatar.js";
 import { validateRequest } from "../../middlewares/validate-request.js";
+
 import {
   login,
   me,
   register,
+  updateProfile,
+  updateAvatar,
 } from "./auth.controller.js";
+
 import {
   loginSchema,
   registerSchema,
@@ -26,4 +31,21 @@ authRouter.post(
   login,
 );
 
-authRouter.get("/me", authenticate, me);
+authRouter.get(
+  "/me",
+  authenticate,
+  me,
+);
+
+authRouter.patch(
+  "/profile",
+  authenticate,
+  updateProfile,
+);
+
+authRouter.patch(
+  "/profile/avatar",
+  authenticate,
+  uploadAvatar.single("avatar"),
+  updateAvatar,
+);

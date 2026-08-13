@@ -2,16 +2,10 @@ import bcrypt from "bcryptjs";
 
 import { env } from "../../config/env.js";
 import { AppError } from "../../errors/app-error.js";
-import {
-  UserRole,
-  UserStatus,
-} from "../../generated/prisma/client.js";
+import { UserRole, UserStatus } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { signAccessToken } from "../../utils/jwt.js";
-import type {
-  LoginInput,
-  RegisterInput,
-} from "./auth.schema.js";
+import type { LoginInput, RegisterInput } from "./auth.schema.js";
 
 const publicUserSelect = {
   id: true,
@@ -47,14 +41,10 @@ export const registerUser = async (input: RegisterInput) => {
   });
 
   if (existingUser) {
-    throw new AppError(
-      409,
-      "An account with this email already exists",
-      {
-        code: "EMAIL_ALREADY_EXISTS",
-        field: "email",
-      },
-    );
+    throw new AppError(409, "An account with this email already exists", {
+      code: "EMAIL_ALREADY_EXISTS",
+      field: "email",
+    });
   }
 
   const passwordHash = await bcrypt.hash(input.password, 12);
@@ -143,4 +133,98 @@ export const getCurrentUser = async (userId: string) => {
   }
 
   return user;
+};
+export const updateCurrentUser = async (
+  userId: string,
+  input: {
+    name?: string;
+    phone?: string | null;
+    bio?: string | null;
+    experienceYears?: number;
+    location?: string;
+  },
+) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      technicianProfile: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!existingUser) {
+    throw new AppError(404, "User was not found", {
+      code: "USER_NOT_FOUND",
+    });
+  }
+
+  const user = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      ...(input.name !== undefined && {
+        name: input.name,
+      }),
+
+      ...(input.phone !== undefined && {
+        phone: input.phone,
+      }),
+    },
+    select: publicUserSelect,
+  });
+
+  if (
+    existingUser.role === UserRole.TECHNICIAN &&
+    existingUser.technicianProfile
+  ) {
+    await prisma.technicianProfile.update({
+      where: {
+        userId,
+      },
+      data: {
+        ...(input.bio !== undefined && {
+          bio: input.bio,
+        }),
+
+        ...(input.experienceYears !== undefined && {
+          experienceYears: input.experienceYears,
+        }),
+
+        ...(input.location !== undefined && {
+          location: input.location,
+        }),
+      },
+    });
+  }
+
+  return getCurrentUser(userId);
+};
+export const updateUserAvatar = async (
+  userId: string,
+  file: Express.Multer.File,
+) => {
+  // Upload `file.buffer` to Cloudinary/Supabase Storage here.
+  //
+  // After getting the public URL:
+  //
+  // const avatarUrl = "https://...";
+
+  const avatarUrl = "...YOUR_STORAGE_URL...";
+
+  await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      avatarUrl,
+    },
+  });
+
+  return avatarUrl;
 };
