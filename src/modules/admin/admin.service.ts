@@ -1,12 +1,15 @@
 import { Prisma, UserRole, UserStatus } from "../../generated/prisma/client.js";
 import { AppError } from "../../errors/app-error.js";
 import { prisma } from "../../lib/prisma.js";
+import bcrypt from "bcryptjs";
 import type {
   AdminBookingListQuery,
   AdminUserListQuery,
   CreateCategoryInput,
+  CreateAdminInput,
   UpdateCategoryInput,
   UpdateUserStatusInput,
+  
 } from "./admin.schema.js";
 
 const getPagination = (page: number, limit: number, total: number) => ({
@@ -490,4 +493,48 @@ export const markContactMessageAsRead = async (messageId: string) => {
       status: "READ",
     },
   });
+};
+
+export const createAdminUser = async (input: CreateAdminInput) => {
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: input.email,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (existingUser) {
+    throw new AppError(409, "An account with this email already exists", {
+      code: "EMAIL_ALREADY_EXISTS",
+      field: "email",
+    });
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 12);
+
+  const admin = await prisma.user.create({
+    data: {
+      name: input.name,
+      email: input.email,
+      phone: input.phone ?? null,
+      passwordHash,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatarUrl: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return admin;
 };

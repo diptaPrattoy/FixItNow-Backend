@@ -19,18 +19,16 @@ const pagination = {
     .default(10),
 };
 
+/* -------------------------------------------------------------------------- */
+/* USERS                                                                      */
+/* -------------------------------------------------------------------------- */
+
 const userListQuerySchema = z.object({
   ...pagination,
 
-  search: z
-    .string()
-    .trim()
-    .max(150)
-    .optional(),
+  search: z.string().trim().max(150).optional(),
 
-  role: z
-    .enum(["CUSTOMER", "TECHNICIAN", "ADMIN"])
-    .optional(),
+  role: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]).optional(),
 
   status: z.enum(["ACTIVE", "BANNED"]).optional(),
 });
@@ -39,14 +37,39 @@ const updateUserStatusBodySchema = z.object({
   status: z.enum(["ACTIVE", "BANNED"]),
 });
 
+/* -------------------------------------------------------------------------- */
+/* CREATE ADMIN                                                               */
+/* -------------------------------------------------------------------------- */
+
+const createAdminBodySchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must contain at least 2 characters")
+    .max(100, "Name must not exceed 100 characters"),
+
+  email: z
+    .string()
+    .trim()
+    .email("Please provide a valid email address")
+    .transform((value) => value.toLowerCase()),
+
+  phone: z.string().trim().nullable().optional(),
+
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password must not exceed 100 characters"),
+});
+
+/* -------------------------------------------------------------------------- */
+/* BOOKINGS                                                                   */
+/* -------------------------------------------------------------------------- */
+
 const bookingListQuerySchema = z.object({
   ...pagination,
 
-  search: z
-    .string()
-    .trim()
-    .max(150)
-    .optional(),
+  search: z.string().trim().max(150).optional(),
 
   status: z
     .enum([
@@ -60,6 +83,10 @@ const bookingListQuerySchema = z.object({
     ])
     .optional(),
 });
+
+/* -------------------------------------------------------------------------- */
+/* CATEGORIES                                                                 */
+/* -------------------------------------------------------------------------- */
 
 const createCategoryBodySchema = z.object({
   name: z
@@ -81,12 +108,13 @@ const updateCategoryBodySchema = createCategoryBodySchema
   .extend({
     isActive: z.boolean().optional(),
   })
-  .refine(
-    (data) => Object.values(data).some((value) => value !== undefined),
-    {
-      message: "Provide at least one field to update",
-    },
-  );
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "Provide at least one field to update",
+  });
+
+/* -------------------------------------------------------------------------- */
+/* EXPORTED SCHEMAS                                                           */
+/* -------------------------------------------------------------------------- */
 
 export const listAdminUsersSchema = z.object({
   query: userListQuerySchema,
@@ -95,6 +123,10 @@ export const listAdminUsersSchema = z.object({
 export const updateUserStatusSchema = z.object({
   params: idParamsSchema,
   body: updateUserStatusBodySchema,
+});
+
+export const createAdminSchema = z.object({
+  body: createAdminBodySchema,
 });
 
 export const listAdminBookingsSchema = z.object({
@@ -110,24 +142,20 @@ export const updateCategorySchema = z.object({
   body: updateCategoryBodySchema,
 });
 
-export type AdminUserListQuery = z.infer<
-  typeof userListQuerySchema
->;
+/* -------------------------------------------------------------------------- */
+/* TYPES                                                                      */
+/* -------------------------------------------------------------------------- */
 
-export type UpdateUserStatusInput = z.infer<
-  typeof updateUserStatusBodySchema
->;
+export type AdminUserListQuery = z.infer<typeof userListQuerySchema>;
 
-export type AdminBookingListQuery = z.infer<
-  typeof bookingListQuerySchema
->;
+export type UpdateUserStatusInput = z.infer<typeof updateUserStatusBodySchema>;
 
-export type CreateCategoryInput = z.infer<
-  typeof createCategoryBodySchema
->;
+export type CreateAdminInput = z.infer<typeof createAdminBodySchema>;
 
-export type UpdateCategoryInput = z.infer<
-  typeof updateCategoryBodySchema
->;
+export type AdminBookingListQuery = z.infer<typeof bookingListQuerySchema>;
+
+export type CreateCategoryInput = z.infer<typeof createCategoryBodySchema>;
+
+export type UpdateCategoryInput = z.infer<typeof updateCategoryBodySchema>;
 
 export type AdminIdParams = z.infer<typeof idParamsSchema>;

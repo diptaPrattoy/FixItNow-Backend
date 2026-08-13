@@ -13,6 +13,7 @@ import {
   readContactMessage,
   updateCategory,
   updateUserStatus,
+  createAdmin
 } from "./admin.controller.js";
 import {
   createCategorySchema,
@@ -20,11 +21,17 @@ import {
   listAdminUsersSchema,
   updateCategorySchema,
   updateUserStatusSchema,
+  createAdminSchema,
 } from "./admin.schema.js";
 
 export const adminRouter = Router();
 
 adminRouter.use(authenticate, authorizeRoles(UserRole.ADMIN));
+adminRouter.post(
+  "/admins",
+  validateRequest(createAdminSchema),
+  createAdmin,
+);
 
 adminRouter.get("/users", validateRequest(listAdminUsersSchema), listUsers);
 

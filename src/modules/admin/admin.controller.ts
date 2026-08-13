@@ -8,6 +8,7 @@ import type {
   CreateCategoryInput,
   UpdateCategoryInput,
   UpdateUserStatusInput,
+  CreateAdminInput,
 } from "./admin.schema.js";
 import {
   createAdminCategory,
@@ -18,6 +19,7 @@ import {
   markContactMessageAsRead,
   updateAdminCategory,
   updateAdminUserStatus,
+  createAdminUser,
 } from "./admin.service.js";
 
 export const listUsers = catchAsync(async (req: Request, res: Response) => {
@@ -124,3 +126,18 @@ export const readContactMessage = catchAsync(
     });
   },
 );
+
+export const createAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const input = req.body as CreateAdminInput;
+
+    const admin = await createAdminUser(input);
+
+    res.status(201).json({
+      success: true,
+      message: "Administrator created successfully",
+      data: admin,
+    });
+  },
+);
+
